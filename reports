@@ -1,1 +1,7 @@
-
+- name: Generate patch report
+  copy:
+    content: |
+      Host: {{ inventory_hostname }}
+      Status: Patched successfully
+      Date: {{ ansible_date_time.date }}
+    dest: "/tmp/patch_report_{{ inventory_hostname }}.txt"
