@@ -1,2 +1,4 @@
 # enterprise-linux-patching-ansible
-This is for Linux patching with automation
+"Designed for 3500+ servers"
+"Reduces patch time by X%"
+"Ensures compliance readiness"
