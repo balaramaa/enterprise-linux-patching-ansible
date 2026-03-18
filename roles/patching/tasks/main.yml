@@ -1,1 +1,23 @@
+- name: Check OS type
+  debug:
+    msg: "{{ ansible_distribution }}"
 
+- name: Update RHEL systems
+  yum:
+    name: '*'
+    state: latest
+  when: ansible_os_family == "RedHat"
+
+- name: Update Debian systems
+  apt:
+    upgrade: dist
+  when: ansible_os_family == "Debian"
+
+- name: Check if reboot required
+  shell: needs-restarting -r
+  register: reboot_required
+  ignore_errors: yes
+
+- name: Reboot if required
+  reboot:
+  when: reboot_required.rc != 0
