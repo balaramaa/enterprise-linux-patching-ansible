@@ -1,0 +1,9 @@
+---
+# General patching settings
+reboot_allowed: true
+reboot_timeout: 600
+exclude_packages: 
+  - kernel*
+  - mysql*
+# (Optional) Set to 'latest' for full updates or 'present' for security only
+patch_state: latest
