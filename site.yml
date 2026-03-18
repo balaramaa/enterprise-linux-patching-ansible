@@ -1,0 +1,53 @@
+---
+- name: Enterprise Linux Patching Session
+  hosts: all
+  become: true
+  serial: "25%"  # Patch only 25% of servers at a time to maintain uptime
+
+  tasks:
+    # PHASE 1: PRE-PATCHING CHECKS
+    - name: 1.1 - Verify connectivity and gather facts
+      ansible.builtin.setup:
+
+    - name: 1.2 - Check for available disk space (Min 1GB)
+      ansible.builtin.assert:
+        that: "item.mount == '/' and item.size_available > 1073741824"
+        fail_msg: "Insufficient disk space on {{ inventory_hostname }}"
+      loop: "{{ ansible_mounts }}"
+
+    - name: 1.3 - Record current kernel version
+      ansible.builtin.command: uname -r
+      register: pre_kernel
+
+    # PHASE 2: APPLICATION OF PATCHES
+    - name: 2.1 - Upgrade all packages (RHEL/CentOS/Alma)
+      ansible.builtin.dnf:
+        name: "*"
+        state: "{{ patch_state }}"
+        exclude: "{{ exclude_packages | default(omit) }}"
+      register: update_result
+
+    # PHASE 3: REBOOT & VALIDATION
+    - name: 3.1 - Check if reboot is required
+      ansible.builtin.command: needs-restarting -r
+      register: reboot_required
+      ignore_errors: true
+      changed_when: false
+
+    - name: 3.2 - Reboot the server if kernel was updated
+      ansible.builtin.reboot:
+        msg: "Ansible triggered reboot after patching"
+        reboot_timeout: "{{ reboot_timeout }}"
+      when: reboot_required.rc != 0 and reboot_allowed | bool
+
+    - name: 3.3 - Verify system is back online
+      ansible.builtin.command: uptime
+      register: post_uptime
+
+    - name: 3.4 - Show Patching Summary
+      ansible.builtin.debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "Old Kernel: {{ pre_kernel.stdout }}"
+          - "Updates Applied: {{ update_result.changed }}"
+          - "Current Uptime: {{ post_uptime.stdout }}"
